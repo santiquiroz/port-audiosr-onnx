@@ -1,0 +1,11 @@
+# Pinned export environment for audiosr 0.0.7 (Windows, Python 3.11)
+# Order matters: setuptools<81 first (librosa 0.9.2 needs pkg_resources),
+# numpy/matplotlib pinned BEFORE audiosr so pip's resolver keeps them.
+setuptools<81
+wheel
+numpy==1.23.5
+matplotlib==3.7.5
+audiosr==0.0.7
+soundfile
+onnx
+onnxruntime-directml

@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+artifacts/*.onnx
+artifacts/*.onnx.data
+artifacts/*.npy
+refs/*.npy
+*.wav
+!refs/reference.wav
+!refs/degraded_up48k.wav
+dist/
