@@ -1,0 +1,72 @@
+{
+  "model": "haoheliu/audiosr_basic",
+  "license": "MIT",
+  "opset": 17,
+  "sampling_rate": 48000,
+  "stft": {
+    "n_fft": 2048,
+    "hop": 480,
+    "win": 2048,
+    "center": false,
+    "pad_reflect": 784,
+    "window": "hann"
+  },
+  "mel": {
+    "n_mels": 256,
+    "fmin": 20,
+    "fmax": 24000,
+    "log_clip_val": 1e-05,
+    "basis_file": "mel_basis.npy"
+  },
+  "latent": {
+    "channels": 16,
+    "f_size": 32,
+    "vae_downsample": 8,
+    "frames_per_second": 12.5
+  },
+  "scale_factor": 0.3342401385307312,
+  "scheduler": {
+    "type": "ddim",
+    "beta_schedule": "cosine",
+    "linear_start": 0.0015,
+    "linear_end": 0.0195,
+    "num_train_timesteps": 1000,
+    "eta": 1.0,
+    "parameterization": "v",
+    "alphas_cumprod_file": "alphas_cumprod.npy",
+    "timestep_spacing": "uniform_plus_one"
+  },
+  "cfg": {
+    "guidance_scale": 3.5,
+    "unconditional_value": -11.4981
+  },
+  "lowpass": {
+    "order": 8,
+    "cutoff_percentile": 0.985,
+    "types": [
+      "butter",
+      "cheby1",
+      "ellip",
+      "bessel"
+    ]
+  },
+  "window_seconds": 5.12,
+  "graphs": {
+    "vocoder": {
+      "input": "mel [B,256,frames]",
+      "output": "wav [B,frames*480]"
+    },
+    "vae_decoder": {
+      "input": "z [B,16,T,32] (scale_factor baked)",
+      "output": "mel [B,1,T*8,256]"
+    },
+    "vae_feature_extract": {
+      "input": "mel [B,1,frames,256] + noise [B,16,T,32]",
+      "output": "cond latent [B,16,T,32] (unscaled)"
+    },
+    "ddpm": {
+      "input": "x [B,32,T,32] = concat(z_noisy, cond*scale_factor) + timesteps [B] int64",
+      "output": "v prediction [B,16,T,32]"
+    }
+  }
+}
