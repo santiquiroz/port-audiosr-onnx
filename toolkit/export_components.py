@@ -110,10 +110,15 @@ def emit_constants(ld):
     basis = librosa_mel_fn(sr=48000, n_fft=2048, n_mels=256, fmin=20, fmax=24000)
     np.save(ART / "mel_basis.npy", basis.astype(np.float32))
 
+    required = sorted(
+        p.name for p in ART.iterdir()
+        if p.suffix in (".onnx", ".npy", ".data") and "_in" not in p.stem and "_ref" not in p.stem
+    )
     manifest = {
         "model": "haoheliu/audiosr_basic",
         "license": "MIT",
         "opset": OPSET,
+        "required_files": required + ["manifest.json"],
         "sampling_rate": 48000,
         "stft": {"n_fft": 2048, "hop": 480, "win": 2048, "center": False,
                  "pad_reflect": 784, "window": "hann"},
@@ -156,8 +161,6 @@ def main():
     scale_factor = float(ld.scale_factor)
     print(f"scale_factor={scale_factor}", flush=True)
 
-    emit_constants(ld)
-
     def want(name):
         return not only or name in only
 
@@ -193,6 +196,9 @@ def main():
                {"x": {0: "batch", 2: "t"}, "timesteps": {0: "batch"},
                 "v_pred": {0: "batch", 2: "t"}}, dynamo=True)
 
+    # After the graphs so required_files can list what actually exists
+    # (ddpm ships as .onnx + external .onnx.data).
+    emit_constants(ld)
     print("[export] done", flush=True)
 
 

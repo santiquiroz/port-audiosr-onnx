@@ -15,14 +15,16 @@ But in practice you could only run it with **PyTorch + CUDA**. If you own an AMD
 
 **This project decomposes AudioSR into plain ONNX graphs** so the heavy compute runs through [onnxruntime](https://onnxruntime.ai/) on **any execution provider**: DirectML (any DX12 GPU — AMD Radeon, Intel Arc, NVIDIA), CUDA, OpenVINO, or plain CPU. No torch at inference time. No CUDA lock-in. Quality audio super-resolution, democratized.
 
-Measured on an **AMD Radeon RX 7800 XT** (a GPU the original model could never use):
+Measured on an **AMD Radeon RX 7800 XT** (a GPU the original model could never use), per-graph on 5.12 s inputs:
 
-| Graph | Size | CPU-EP | DirectML | Speedup | Correctness vs PyTorch |
+| Graph | Size | CPU-EP | DirectML | Speedup | max rel-err vs PyTorch |
 |---|---|---|---|---|---|
-| VAE decoder (`AutoencoderKL.decode`, scale_factor baked in) | 509 MB | 2071 ms | **247 ms** | **8.4×** | rel-err **0.000** |
-| Vocoder (HiFi-GAN Generator, 48 kHz) | 726 MB | 4426 ms | **1261 ms** | **3.5×** | rel-err **0.000** |
+| UNet 258M (`ddpm`, one CFG pass) | 1.0 GB | 187 ms | **44 ms** | 4.3× | 1e-6 |
+| VAE decoder (scale_factor baked in) | 534 MB | 1891 ms | **79 ms** | **24×** | 1e-6 |
+| Vocoder (HiFi-GAN, 48 kHz) | 761 MB | 4090 ms | **617 ms** | 6.6× | 3e-5 |
+| vae_feature_extract (conditioner) | 360 MB | 915 ms | **43 ms** | **21×** | 1e-5 |
 
-*(Table grows as the remaining graphs land — see status below.)*
+**Full pipeline** (torch-free numpy driver + ONNX graphs, 50 DDIM steps with CFG): a 6 s clip restores in **11.2 s on DirectML (RTF 1.87)** vs 63.3 s on CPU (RTF 10.5) — **5.7× end-to-end**. Final waveform matches the original PyTorch pipeline at max rel-err **8e-4** with replayed noise.
 
 ## How it works
 
@@ -55,11 +57,14 @@ flowchart LR
 
 | Component | Export | Parity | DirectML |
 |---|---|---|---|
-| VAE decoder | ✅ | ✅ rel-err 0.000 | ✅ 8.4× |
-| Vocoder (HiFi-GAN) | ✅ | ✅ rel-err 0.000 | ✅ 3.5× |
-| vae_feature_extract | 🔜 | — | — |
-| UNet 258M (`ddpm`) | 🔜 | — | — |
-| numpy DDIM/CFG driver | 🔜 | — | — |
+| VAE decoder | ✅ | ✅ | ✅ 24× |
+| Vocoder (HiFi-GAN) | ✅ | ✅ | ✅ 6.6× |
+| vae_feature_extract | ✅ | ✅ | ✅ 21× |
+| UNet 258M (`ddpm`) | ✅ | ✅ | ✅ 4.3× |
+| numpy DDIM/CFG driver | ✅ | ✅ every stage (`toolkit/validate_driver.py`) | ✅ RTF 1.87 |
+| fp16 UNet | 🔬 measuring | — | — |
+
+Pre-exported graphs are published as [release assets](https://github.com/santiquiroz/port-audiosr-onnx/releases) (~2.6 GB) — no torch needed to consume them.
 
 ## Usage
 

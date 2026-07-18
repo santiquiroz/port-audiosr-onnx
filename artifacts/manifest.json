@@ -68,5 +68,15 @@
       "input": "x [B,32,T,32] = concat(z_noisy, cond*scale_factor) + timesteps [B] int64",
       "output": "v prediction [B,16,T,32]"
     }
-  }
+  },
+  "required_files": [
+    "alphas_cumprod.npy",
+    "ddpm.onnx",
+    "ddpm.onnx.data",
+    "mel_basis.npy",
+    "vae_decoder.onnx",
+    "vae_feature_extract.onnx",
+    "vocoder.onnx",
+    "manifest.json"
+  ]
 }
