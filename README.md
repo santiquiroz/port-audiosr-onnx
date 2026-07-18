@@ -62,7 +62,9 @@ flowchart LR
 | vae_feature_extract | ✅ | ✅ | ✅ 21× |
 | UNet 258M (`ddpm`) | ✅ | ✅ | ✅ 4.3× |
 | numpy DDIM/CFG driver | ✅ | ✅ every stage (`toolkit/validate_driver.py`) | ✅ RTF 1.87 |
-| fp16 UNet | 🔬 measuring | — | — |
+| fp16 UNet | 🔜 follow-up | — | — |
+
+*fp16 note: `onnxconverter-common` chokes on the 1 GB dynamo-exported UNet (hours-long conversion, mistyped Cast nodes). fp32 on DirectML already runs the UNet at 44 ms/call, so fp16 is an optimization PR waiting for a better converter path — contributions welcome.*
 
 Pre-exported graphs are published as [release assets](https://github.com/santiquiroz/port-audiosr-onnx/releases) (~2.6 GB) — no torch needed to consume them.
 
