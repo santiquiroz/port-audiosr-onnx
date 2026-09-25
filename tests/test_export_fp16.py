@@ -6,6 +6,7 @@ import numpy as np
 import onnx
 import onnxruntime as ort
 import pytest
+from manifest import sha256_of
 from onnx import TensorProto, helper, numpy_helper
 
 CPU = ["CPUExecutionProvider"]
@@ -157,7 +158,7 @@ def test_convert_pack_writes_fp16_manifest_with_hashes(fp32_pack, tmp_path):
     for name in hashed:
         assert (dst / name).exists()
         assert SHA256_HEX.match(manifest["sha256"][name])
-    assert manifest["sha256"]["tiny.onnx"] == export_fp16.sha256_of(dst / "tiny.onnx")
+    assert manifest["sha256"]["tiny.onnx"] == sha256_of(dst / "tiny.onnx")
 
 
 def test_convert_pack_records_fp32_source_hashes(fp32_pack, tmp_path):
@@ -167,7 +168,7 @@ def test_convert_pack_records_fp32_source_hashes(fp32_pack, tmp_path):
     manifest = json.loads((dst / "manifest.json").read_text())
     sources = manifest["fp16"]["source_sha256"]
     assert set(sources) == {"tiny.onnx", "tiny.onnx.data"}
-    assert sources["tiny.onnx.data"] == export_fp16.sha256_of(fp32_pack / "tiny.onnx.data")
+    assert sources["tiny.onnx.data"] == sha256_of(fp32_pack / "tiny.onnx.data")
     assert manifest["fp16"]["op_block_list"] == list(export_fp16.OP_BLOCK_LIST)
 
 

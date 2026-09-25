@@ -9,12 +9,12 @@ Usage: python toolkit/export_fp16.py <fp32_dir> <fp16_dir>
 """
 
 import argparse
-import hashlib
 import json
 import shutil
 from pathlib import Path
 
 import onnx
+from manifest import hashes
 from onnxruntime.transformers import float16
 from onnxruntime.transformers.onnx_model import OnnxModel
 
@@ -92,15 +92,6 @@ def fp16_required_files(fp32_required: list[str]) -> list[str]:
         if is_graph(name):
             required.append(name + ".data")
     return required
-
-
-def sha256_of(path: Path) -> str:
-    with path.open("rb") as f:
-        return hashlib.file_digest(f, "sha256").hexdigest()
-
-
-def hashes(folder: Path, names: list[str]) -> dict[str, str]:
-    return {name: sha256_of(folder / name) for name in names}
 
 
 def fp16_manifest(fp32_manifest: dict, asset_sha: dict, source_sha: dict) -> dict:
