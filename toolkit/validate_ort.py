@@ -76,9 +76,14 @@ def dml_available():
     return DML_EP in ort.get_available_providers()
 
 
+def within_tol(err, tol):
+    # Written as err < tol so a NaN rel-err counts as a failure.
+    return bool(err < tol)
+
+
 def check_cpu(name):
     cpu_ms, cpu_err = run(name, [CPU_EP], "CPU-EP")
-    if cpu_err >= CPU_TOL:
+    if not within_tol(cpu_err, CPU_TOL):
         return cpu_ms, [f"{name}: CPU rel-err too high: {cpu_err}"]
     return cpu_ms, []
 
@@ -89,7 +94,7 @@ def check_dml(name, cpu_ms):
     except Exception as exc:  # noqa: BLE001
         return [f"{name}: DirectML run failed: {exc}"]
     print(f"  speedup: {cpu_ms / dml_ms:.1f}x")
-    if dml_err >= DML_TOL:
+    if not within_tol(dml_err, DML_TOL):
         return [f"{name}: DML rel-err too high: {dml_err}"]
     return []
 

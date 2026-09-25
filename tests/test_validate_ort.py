@@ -87,3 +87,13 @@ def test_no_exported_graphs_exits_nonzero(monkeypatch, capsys):
     code = exit_code(monkeypatch, [], [DML, CPU], fake_run())
     assert code == 1
     assert "no exported graphs" in capsys.readouterr().out
+
+
+def test_cpu_nan_rel_err_exits_nonzero(monkeypatch):
+    code = exit_code(monkeypatch, ["ddpm"], [DML, CPU], fake_run(cpu_err=float("nan")))
+    assert code == 1
+
+
+def test_dml_nan_rel_err_exits_nonzero(monkeypatch):
+    code = exit_code(monkeypatch, ["ddpm"], [DML, CPU], fake_run(dml_err=float("nan")))
+    assert code == 1
