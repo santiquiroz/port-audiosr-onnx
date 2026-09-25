@@ -43,6 +43,11 @@ def rel_err(a, b):
     return float(np.abs(a - b).max() / denom)
 
 
+def within_tol(err, tol):
+    # Written as err <= tol so a NaN rel-err counts as a failure.
+    return bool(err <= tol)
+
+
 def check(name, got, ref, tol, min_length=False):
     got = np.asarray(got, dtype=np.float64).squeeze()
     ref = np.asarray(ref, dtype=np.float64).squeeze()
@@ -55,8 +60,9 @@ def check(name, got, ref, tol, min_length=False):
         return
     err = rel_err(got, ref)
     rms = float(np.sqrt(np.mean((got - ref) ** 2)) / max(np.sqrt(np.mean(ref**2)), 1e-12))
-    status = "ok" if err <= tol else "FAIL"
-    if err > tol:
+    passed = within_tol(err, tol)
+    status = "ok" if passed else "FAIL"
+    if not passed:
         FAILURES.append(name)
     print(f"  {name:>28}: rel-err {err:.6f}  rms {rms:.6f}  (tol {tol})  {status}")
 
