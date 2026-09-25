@@ -107,3 +107,35 @@ def test_opset_ignores_non_default_domains(tmp_path):
     onnx.save(model, str(tmp_path / "vocoder.onnx"))
 
     assert manifest.graph_opset(tmp_path / "vocoder.onnx") == 17
+
+
+def write_manifest(folder, content):
+    (folder / manifest.MANIFEST).write_text(json.dumps(content), encoding="utf-8")
+
+
+def test_unlisted_files_names_foreign_files(art_dir):
+    built = manifest.build_manifest(art_dir, SCALE_FACTOR)
+    write_manifest(art_dir, built)
+
+    assert manifest.unlisted_files(art_dir, built) == ["ddpm_fp16.onnx", "ddpm_fp16.onnx.data"]
+
+
+def test_unlisted_files_ignore_validation_fixtures_and_folders(tmp_path):
+    for name in ("vocoder.onnx", "ddpm_ref.npy", "vae_feature_extract_in1.npy"):
+        (tmp_path / name).write_bytes(b"x")
+    (tmp_path / "cache").mkdir()
+
+    assert manifest.unlisted_files(tmp_path, {"required_files": ["vocoder.onnx"]}) == []
+
+
+@pytest.mark.parametrize("name", ["ddpm_in0.npy", "ddpm_in1.npy", "vocoder_ref.npy",
+                                  "vae_feature_extract_in1.npy", "vae_decoder_ref.npy"])
+def test_validation_fixtures_are_recognized(name):
+    assert manifest.is_validation_fixture(name)
+
+
+@pytest.mark.parametrize("name", ["mel_basis.npy", "alphas_cumprod.npy", "ddpm_fp16.onnx",
+                                  "ddpm_ref.onnx", "ddpm_in.npy", "unet_in0.npy",
+                                  "ddpm_fp16_in0.npy"])
+def test_other_files_are_not_validation_fixtures(name):
+    assert not manifest.is_validation_fixture(name)

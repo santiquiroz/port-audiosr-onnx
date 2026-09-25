@@ -135,6 +135,18 @@ Converts the fp32 pack (source and destination must differ) into the `models-fp1
 
 The `manifest.json` + graphs are runtime-agnostic. A reference numpy driver (DDIM + CFG + mel front-end, zero torch) ships with [Upflow](https://github.com/santiquiroz/upflow), where this port powers the audio-restore engine on AMD GPUs.
 
+## Tests
+
+The `tests/` suite is hermetic: no torch, no GPU, CPU `onnxruntime` only, synthetic graphs and mocked sessions. Use a separate venv, since `onnxruntime` and `onnxruntime-directml` don't mix:
+
+```powershell
+python -m venv .venv-test
+.venv-test\Scripts\python.exe -m pip install -r requirements-dev.txt
+.venv-test\Scripts\python.exe -m pytest tests -q
+```
+
+Tests marked `needs_artifacts` check `manifest.json` against the pack: every file in `required_files` exists, and every other file in the folder is a `<graph>_in<N>.npy` / `<graph>_ref.npy` validation tensor. They are skipped when `AUDIOSR_ARTIFACTS` (default: `artifacts/`) holds no `.onnx`, as in a fresh clone; point the variable at an exported pack to run them.
+
 ## Model config (from `manifest.json`)
 
 | Param | Value |

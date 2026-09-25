@@ -1,0 +1,8 @@
+# Hermetic test suite (no torch, no GPU): python -m pytest tests -q
+# CPU onnxruntime on purpose; keep it out of the export venv (onnxruntime-directml).
+numpy
+onnx
+onnxruntime
+packaging
+pytest
+soundfile

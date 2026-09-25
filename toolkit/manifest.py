@@ -3,6 +3,7 @@ writes into artifacts/, so it runs (and is tested) without the export stack.
 """
 
 import hashlib
+import re
 from pathlib import Path
 
 import onnx
@@ -11,6 +12,7 @@ MANIFEST = "manifest.json"
 GRAPHS = ("vocoder", "vae_decoder", "vae_feature_extract", "ddpm")
 CONSTANTS = ("alphas_cumprod.npy", "mel_basis.npy")
 DEFAULT_DOMAINS = ("", "ai.onnx")
+VALIDATION_FIXTURE = re.compile(rf"(?:{'|'.join(GRAPHS)})_(?:in\d+|ref)\.npy")
 
 STATIC_CONFIG = {
     "sampling_rate": 48000,
@@ -100,3 +102,13 @@ def build_manifest(art_dir: Path, scale_factor: float) -> dict:
 def missing_files(art_dir: Path, manifest: dict) -> list[str]:
     assets = [n for n in manifest["required_files"] if n != MANIFEST]
     return [name for name in assets if not (art_dir / name).exists()]
+
+
+def is_validation_fixture(name: str) -> bool:
+    return VALIDATION_FIXTURE.fullmatch(name) is not None
+
+
+def unlisted_files(art_dir: Path, manifest: dict) -> list[str]:
+    listed = set(manifest["required_files"])
+    names = sorted(p.name for p in art_dir.iterdir() if p.is_file())
+    return [n for n in names if n not in listed and not is_validation_fixture(n)]
