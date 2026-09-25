@@ -1,4 +1,4 @@
-"""Exports the 4 neural graphs of AudioSR (basic, 48k) to ONNX opset 17,
+"""Exports the 4 neural graphs of AudioSR (basic, 48k) to ONNX (opset 17, ddpm 18),
 saves PyTorch reference tensors for parity validation, and emits
 manifest.json + the schedule/mel constants the runtime driver needs.
 
@@ -22,6 +22,7 @@ import patches
 
 patches.apply_all()
 
+import manifest  # noqa: E402
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
@@ -41,8 +42,15 @@ def save_pair(name, inputs, output):
     np.save(ART / f"{name}_ref.npy", output.detach().cpu().numpy())
 
 
+def remove_graph(path):
+    # onnx.save appends to an existing external-data file instead of truncating it.
+    path.unlink(missing_ok=True)
+    path.with_name(path.name + ".data").unlink(missing_ok=True)
+
+
 def export(module, name, inputs, input_names, output_names, dynamic_axes, dynamo=False):
     path = ART / f"{name}.onnx"
+    remove_graph(path)
     module.eval()
     with torch.no_grad():
         out = module(*inputs)
@@ -110,44 +118,10 @@ def emit_constants(ld):
     basis = librosa_mel_fn(sr=48000, n_fft=2048, n_mels=256, fmin=20, fmax=24000)
     np.save(ART / "mel_basis.npy", basis.astype(np.float32))
 
-    required = sorted(
-        p.name for p in ART.iterdir()
-        if p.suffix in (".onnx", ".npy", ".data") and "_in" not in p.stem and "_ref" not in p.stem
-    )
-    manifest = {
-        "model": "haoheliu/audiosr_basic",
-        "license": "MIT",
-        "opset": OPSET,
-        "required_files": required + ["manifest.json"],
-        "sampling_rate": 48000,
-        "stft": {"n_fft": 2048, "hop": 480, "win": 2048, "center": False,
-                 "pad_reflect": 784, "window": "hann"},
-        "mel": {"n_mels": 256, "fmin": 20, "fmax": 24000,
-                "log_clip_val": 1e-5, "basis_file": "mel_basis.npy"},
-        "latent": {"channels": 16, "f_size": 32, "vae_downsample": 8,
-                   "frames_per_second": 12.5},
-        "scale_factor": float(ld.scale_factor),
-        "scheduler": {"type": "ddim", "beta_schedule": "cosine",
-                      "linear_start": 0.0015, "linear_end": 0.0195,
-                      "num_train_timesteps": 1000, "eta": 1.0,
-                      "parameterization": "v",
-                      "alphas_cumprod_file": "alphas_cumprod.npy",
-                      "timestep_spacing": "uniform_plus_one"},
-        "cfg": {"guidance_scale": 3.5, "unconditional_value": -11.4981},
-        "lowpass": {"order": 8, "cutoff_percentile": 0.985,
-                    "types": ["butter", "cheby1", "ellip", "bessel"]},
-        "window_seconds": 5.12,
-        "graphs": {
-            "vocoder": {"input": "mel [B,256,frames]", "output": "wav [B,frames*480]"},
-            "vae_decoder": {"input": "z [B,16,T,32] (scale_factor baked)",
-                            "output": "mel [B,1,T*8,256]"},
-            "vae_feature_extract": {"input": "mel [B,1,frames,256] + noise [B,16,T,32]",
-                                    "output": "cond latent [B,16,T,32] (unscaled)"},
-            "ddpm": {"input": "x [B,32,T,32] = concat(z_noisy, cond*scale_factor) + timesteps [B] int64",
-                     "output": "v prediction [B,16,T,32]"},
-        },
-    }
-    (ART / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    pack = manifest.build_manifest(ART, ld.scale_factor)
+    for name in manifest.missing_files(ART, pack):
+        print(f"[export] WARNING: {name} missing, the pack is incomplete", flush=True)
+    (ART / manifest.MANIFEST).write_text(json.dumps(pack, indent=2))
     print("[export] manifest + constants written", flush=True)
 
 
@@ -196,8 +170,7 @@ def main():
                {"x": {0: "batch", 2: "t"}, "timesteps": {0: "batch"},
                 "v_pred": {0: "batch", 2: "t"}}, dynamo=True)
 
-    # After the graphs so required_files can list what actually exists
-    # (ddpm ships as .onnx + external .onnx.data).
+    # After the graphs: opsets and sha256 are read from the files just written.
     emit_constants(ld)
     print("[export] done", flush=True)
 
