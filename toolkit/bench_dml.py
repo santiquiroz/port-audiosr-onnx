@@ -87,18 +87,9 @@ def main():
         fp16_path = ART / "ddpm_fp16.onnx"
         if not fp16_path.exists():
             print("[fp16] converting ddpm...")
-            import onnx
-            from onnxconverter_common import float16
+            from export_fp16 import convert_graph
 
-            model = onnx.load(str(ART / "ddpm.onnx"))
-            # The dynamo-exported graph carries Cast/_to_copy nodes the
-            # converter mistypes unless they are blocked from conversion.
-            model16 = float16.convert_float_to_float16(
-                model, keep_io_types=True, disable_shape_infer=True,
-                op_block_list=list(float16.DEFAULT_OP_BLOCK_LIST) + ["Cast"],
-            )
-            onnx.save(model16, str(fp16_path),
-                      save_as_external_data=True, location="ddpm_fp16.onnx.data")
+            convert_graph(ART / "ddpm.onnx", fp16_path)
         out16 = run_once("DirectML fp16-UNet", ["DmlExecutionProvider"], wav, steps,
                          ddpm_path=fp16_path)
         n = min(out16.shape[-1], out_dml.shape[-1])
