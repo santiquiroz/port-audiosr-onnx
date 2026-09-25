@@ -2,9 +2,11 @@
 CPU-EP and DirectML, printing rel-err + timing. Exits 1 on any failure.
 
 Usage: python toolkit/validate_ort.py [graph ...] [--require-dml]
+Env:   AUDIOSR_ARTIFACTS (default: <repo>/artifacts)
 """
 
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
@@ -13,7 +15,7 @@ import numpy as np
 import onnxruntime as ort
 
 ROOT = Path(__file__).resolve().parent.parent
-ART = ROOT / "artifacts"
+ART = Path(os.environ.get("AUDIOSR_ARTIFACTS") or ROOT / "artifacts")
 
 GRAPHS = ["vocoder", "vae_decoder", "vae_feature_extract", "ddpm"]
 CPU_EP = "CPUExecutionProvider"

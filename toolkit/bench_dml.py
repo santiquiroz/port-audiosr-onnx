@@ -6,6 +6,7 @@ window - also exercises the DirectML large-tensor behavior beyond the T=64
 export shapes).
 
 Usage: python toolkit/bench_dml.py [--fp16] [steps]
+Env:   UPFLOW_ROOT, AUDIOSR_ARTIFACTS (default: <repo>/artifacts; --fp16 writes ddpm_fp16.onnx there)
 """
 
 import os
@@ -18,7 +19,7 @@ import onnxruntime as ort
 import soundfile as sf
 
 ROOT = Path(__file__).resolve().parent.parent
-ART = ROOT / "artifacts"
+ART = Path(os.environ.get("AUDIOSR_ARTIFACTS") or ROOT / "artifacts")
 UPFLOW = Path(os.environ.get(
     "UPFLOW_ROOT", Path.home() / ".openclaw" / "workspace" / "image-upscaler-amd"
 ))

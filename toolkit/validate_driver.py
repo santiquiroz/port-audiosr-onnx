@@ -7,6 +7,7 @@ parity gate before the driver ships inside Upflow.
 
 Usage: .venv/Scripts/python.exe toolkit/validate_driver.py
 Env:   UPFLOW_ROOT (default: ~/.openclaw/workspace/image-upscaler-amd)
+       AUDIOSR_ARTIFACTS (default: <repo>/artifacts; refs/baseline stays in the repo)
 """
 
 import json
@@ -18,7 +19,7 @@ import numpy as np
 import onnxruntime as ort
 
 ROOT = Path(__file__).resolve().parent.parent
-ART = ROOT / "artifacts"
+ART = Path(os.environ.get("AUDIOSR_ARTIFACTS") or ROOT / "artifacts")
 BASE = ROOT / "refs" / "baseline"
 
 UPFLOW = Path(os.environ.get(

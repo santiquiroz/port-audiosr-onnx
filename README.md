@@ -114,6 +114,15 @@ $env:UPFLOW_ROOT = "C:\path\to\upflow"
 
 `validate_driver.py` replays the noise tensors captured by `toolkit/capture_baseline.py` and compares the driver against the PyTorch pipeline at every stage boundary. `bench_dml.py --fp16` also converts `ddpm` with the fp16 recipe and times it on DirectML.
 
+The exported graphs are gitignored, so a fresh clone or worktree has none. Point `AUDIOSR_ARTIFACTS` (default: `artifacts/`) at an existing pack instead of re-exporting; `refs/baseline` is always read from the repo:
+
+```powershell
+$env:AUDIOSR_ARTIFACTS = "C:\path\to\port-audiosr-onnx\artifacts"
+.venv\Scripts\python.exe toolkit\validate_driver.py
+```
+
+`validate_driver.py` and `bench_dml.py` only need the fp32 pack (4 graphs, `.npy` constants, `manifest.json`), so an installed Upflow `vendor/audiosr` works too. `validate_ort.py` also needs the `*_in*.npy` / `*_ref.npy` reference tensors that only an export writes. `bench_dml.py --fp16` writes `ddpm_fp16.onnx` into that folder, so don't aim it at a live install.
+
 ### 5. Build the fp16 pack
 
 ```powershell
